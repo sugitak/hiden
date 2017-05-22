@@ -48,27 +48,31 @@ type GithubAsset struct {
 }
 
 func github_binary_install(name string) error {
+	return nil
+}
+
+func get_latest_release(name string) (GithubRelease, error) {
 	name = "https://api.github.com/repos/prometheus/prometheus/releases/latest"
 	var release GithubRelease
 
 	resp, err := http.Get(name)
 	if err != nil {
 		fmt.Printf("Error getting %s:\n\t%s\n", name, err)
-		return err
+		return release, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error getting text body in %s:\n\t%s\n", name, err)
-		return err
+		return release, err
 	}
 
 	err = json.Unmarshal(body, &release)
 	if err != nil {
 		fmt.Printf("Error unmarshalling JSON in %s:\n\t%s\n ", name, err)
-		return err
+		return release, err
 	}
 
-	return release
+	return release, nil
 }
