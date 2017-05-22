@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -21,7 +22,6 @@ func main() {
 			Usage:   "install new package",
 			Action: func(c *cli.Context) error {
 				name := c.Args().Get(0)
-				fmt.Printf("First argument: %s\n", name)
 				github_binary_install(name)
 				return nil
 			},
@@ -31,8 +31,25 @@ func main() {
 	app.Run(os.Args)
 }
 
+type GithubRelease struct {
+	Id        int           `json:"id"`
+	TagName   string        `json:"tag_name"`
+	Url       string        `json:"url"`
+	CreatedAt string        `json:"created_at"`
+	Assets    []GithubAsset `json:"assets"`
+}
+
+type GithubAsset struct {
+	Id        int    `json:"id"`
+	Name      string `json:"name"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+	Url       string `json:"browser_download_url"`
+}
+
 func github_binary_install(name string) error {
 	name = "https://api.github.com/repos/prometheus/prometheus/releases/latest"
+	var release GithubRelease
 
 	resp, err := http.Get(name)
 	if err != nil {
@@ -47,10 +64,11 @@ func github_binary_install(name string) error {
 		return err
 	}
 
-	err := json.Unmarshal()
+	err = json.Unmarshal(body, &release)
 	if err != nil {
 		fmt.Printf("Error unmarshalling JSON in %s:\n\t%s\n ", name, err)
 		return err
 	}
-	return nil
+
+	return release
 }
