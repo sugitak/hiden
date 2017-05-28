@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
+	//"runtime"
 
 	"github.com/urfave/cli"
 )
@@ -47,7 +49,69 @@ type GithubAsset struct {
 	Url       string `json:"browser_download_url"`
 }
 
+func (release GithubRelease) BestAsset() (GithubAsset, error) {
+	var asset GithubAsset
+	for _, elem := range release.Assets {
+		os, arch := elem.Type()
+		if os == "darwin" && arch == "amd64" {
+			asset = elem
+		}
+	}
+	return asset, nil
+}
+
+var os_mac = regexp.MustCompile(`darwin|mac|osx`)
+var os_lin = regexp.MustCompile(`linux`)
+var os_win = regexp.MustCompile(`win|ms`)
+var os_bsd = regexp.MustCompile(`bsd`)
+var os_sol = regexp.MustCompile(`solaris`)
+
+var arch_amd64 = regexp.MustCompile(`(amd|x(86[_-])?)64|64[^a-zA-Z0-9]`)
+var arch_arm = regexp.MustCompile(`arm`)
+var arch_powerpc = regexp.MustCompile(`powerpc|ppc`)
+
+func match(text string, re *regexp.Regexp) bool {
+	if re.FindStringIndex(text) == nil {
+		return false
+	}
+	return true
+}
+
+func (asset GithubAsset) Type() (string, string) {
+	os := "unknown"
+	arch := "i386"
+
+	// FIXME: dumb regex check
+	//        this may check wrong in so many cases
+	switch {
+	case match(asset.Name, os_mac):
+		os = "darwin"
+	case match(asset.Name, os_lin):
+		os = "linux"
+	case match(asset.Name, os_win):
+		os = "windows"
+	case match(asset.Name, os_bsd):
+		os = "bsd"
+	case match(asset.Name, os_sol):
+		os = "solaris"
+	}
+
+	switch {
+	case match(asset.Name, arch_amd64):
+		arch = "amd64"
+	case match(asset.Name, arch_powerpc):
+		arch = "powerpc"
+	case match(asset.Name, arch_arm):
+		arch = "arm"
+	}
+
+	return os, arch
+}
+
 func github_binary_install(name string) error {
+	releases, _ := get_latest_release(name)
+	asset, _ := releases.BestAsset()
+	fmt.Printf("GOOOGOOOGOOGOO [%s]\n", asset.Url)
 	return nil
 }
 
